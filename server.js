@@ -31,30 +31,34 @@ app.post("/bookings", function (request,response) {
     roomId: request.body.roomId,
     checkInDate: request.body.checkInDate,
     checkOutDate: request.body.checkOutDate
-  }; 
+  };
 	//logic: check each key-pair is added otherwise log an error
 	if(!newBooking.id || !newBooking.title || !newBooking.firstName || ! !newBooking.surname || !newBooking.email || !newBooking.roomId || !newBooking.checkInDate || !newBooking.checkOutDate) {
-	 return response.status(404).json({msg: "Please complete all fields"});
+	 return response.status(400).json({msg: "Please complete all fields"});
 	}
 	//if successful, add the new booking details to booking.json
   bookings.push(newBooking);
   response.json({msg: "booking added",bookings});
 });
-//read a booking by ID
-app.get("/bookings/:id", function(request,response) {
-	console.log(request.method,request.originalUrl);
-	const id = request.params.id;
-	console.log(id);
-	const match = bookings.some(  ele => ele.id === parseInt(id));
-	console.log(match);
-	if(match) {
-		 response.json(bookings.find( ({id}) => id === parseInt(id) ));
-	}else {
-		response.status(404).json({msg: `ID: ${id} Not found`});
-	}
-	
-})
 
+
+//search for a guest by date BE CAREFUL OF HIERARCHY
+
+app.get("/bookings/search", function(request, response) {
+  console.log(request.method, request.originalUrl);
+  const searchDate = request.query.date;
+  console.log(searchDate);
+  const result = bookings.some(ele => ele.checkInDate === searchDate || ele.checkOutDate === searchDate);
+  console.log(result);
+
+  if(result){
+	 response.json(bookings.filter(ele => ele.checkInDate === searchDate || ele.checkOutDate === searchDate));
+  } else {
+	  response.status(404).json({msg: `Guest not found`});
+  }
+
+
+});
 
 
 
@@ -63,6 +67,66 @@ app.get("/bookings", function(request,response){
   console.log(request.method, request.originalUrl);
   response.json(bookings);
 });
+
+//read a booking by ID
+app.get("/bookings/:id", function(request,response) {
+	console.log(request.method,request.originalUrl);
+	const id = request.params.id;
+	const match = bookings.some( ele => ele.id === parseInt(id) );
+
+	if(match) {
+		 response.json(bookings.filter( ele => ele.id === parseInt(id) ));
+	} else {
+		response.status(404).json({msg: `ID: ${id} not found`});
+	}
+
+});
+//update a booking ID
+app.put("/bookings/:id", function(request,response) {
+	console.log(request.method,request.originalUrl);
+
+	const id = request.params.id
+	const match = bookings.some(el => el.id === parseInt(id));
+
+	if(match) {
+		const updateGuest = request.body;
+		bookings.forEach(el => {
+			if(el.id === parseInt(id)) {
+				el.id = updateGuest.id ? updateGuest.id : el.id;
+				el.title = updateGuest.title ? updateGuest.title : el.title;
+				el.firstName = updateGuest.firstName ? updateGuest.firstName : el.firstName;
+				el.surname = updateGuest.surname ? updateGuest.surname : el.surname;
+				el.email = updateGuest.email ? updateGuest.email : el.email;
+				el.roomId = updateGuest.roomId ? updateGuest.roomId : el.roomId;
+				el.checkInDate = updateGuest.checkInDate ? updateGuest.checkInDate : el.checkInDate;
+				el.checkOutDate = updateGuest.checkOutDate ? updateGuest.checkOutDate : el.checkOutDate;
+
+				response.json({msg: `Updated Guest:${id}`, el})
+			}
+			})
+	} else {
+		response.status(404).json({msg: `Guest: ${id} not found`});
+	}
+
+
+});
+
+
+//delete a booking by ID
+app.delete("/bookings/:id", function(request,response) {
+	console.log(request.method,request.originalUrl);
+	const id = request.params.id;
+	const match = bookings.some(  ele => ele.id === parseInt(id) );
+
+	if(match) {
+		 response.json({msg: `Booking ${id} removed`,
+		 bookings: bookings.filter( ele => ele.id !== parseInt(id) )});
+	} else {
+		response.status(404).json({msg: `ID: ${id} Not found`});
+	}
+
+});
+
 
 
 
