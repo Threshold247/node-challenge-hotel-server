@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const validator = require("email-validator");
 
 const app = express();
 
@@ -34,33 +35,38 @@ app.post("/bookings", function (request,response) {
   };
 	//logic: check each key-pair is added otherwise log an error
 	if(!newBooking.id || !newBooking.title || !newBooking.firstName || ! !newBooking.surname || !newBooking.email || !newBooking.roomId || !newBooking.checkInDate || !newBooking.checkOutDate) {
-	 return response.status(400).json({msg: "Please complete all fields"});
-	}
+	 //return response.status(400).json({msg: "Please complete all fields"});
+   response.status(400).json({msg: "Please complete all fields"});
+ } else if (!validator.validate(newBooking.email) {
+   reponse.json({msg:"Check email format" });
+ }
 	//if successful, add the new booking details to booking.json
   bookings.push(newBooking);
   response.json({msg: "booking added",bookings});
 });
 
 
-//search for a guest by date BE CAREFUL OF HIERARCHY
 
+//search for guest by term
 app.get("/bookings/search", function(request, response) {
   console.log(request.method, request.originalUrl);
-  const searchDate = request.query.date;
-  console.log(searchDate);
-  const result = bookings.some(ele => ele.checkInDate === searchDate || ele.checkOutDate === searchDate);
-  console.log(result);
+  const searchTerm = request.query.term.toLowerCase();
+  console.log(searchTerm);
+  const test = bookings.some(({firstName,surname,email}) =>
+  firstName.toLowerCase() === searchTerm ||
+  surname.toLowerCase() === searchTerm ||
+  email.toLowerCase() === searchTerm);
+  console.log(test);
 
-  if(result){
-	 response.json(bookings.filter(ele => ele.checkInDate === searchDate || ele.checkOutDate === searchDate));
+  if(test){
+	 response.json(bookings.filter(({firstName,surname,email}) =>
+   firstName.toLowerCase() === searchTerm ||
+   surname.toLowerCase() === searchTerm ||
+   email.toLowerCase() === searchTerm));
   } else {
 	  response.status(404).json({msg: `Guest not found`});
   }
-
-
 });
-
-
 
 //read all bookings
 app.get("/bookings", function(request,response){
@@ -126,7 +132,26 @@ app.delete("/bookings/:id", function(request,response) {
 	}
 
 });
+//search for a guest by date BE CAREFUL OF HIERARCHY
+app.use("/bookings/search", function(request, response,next) {
+  console.log(request.method, request.originalUrl);
+  const searchDate = request.query.date;
+  console.log(searchDate);
+  const result = bookings.some(({checkInDate,checkOutDate}) =>
+  checkInDate === searchDate ||
+  checkOutDate === searchDate);
+  console.log(result);
 
+  if(result){
+	 response.json(bookings.filter(({checkInDate,checkOutDate}) =>
+   checkInDate === searchDate ||
+   checkOutDate === searchDate));
+  } else {
+	  response.status(404).json({msg: `Guest not found`});
+  }
+  next();
+
+});
 
 
 
